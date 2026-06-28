@@ -1,27 +1,6 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: api-gateway
 
-  cloud:
-    gateway:
-      routes:
-        - id: product-service
-          uri: lb://PRODUCT-SERVICE # lb = load balanced via Eureka
-          predicates:
-            - Path=/api/products/**
-          filters:
-            - StripPrefix=0
-            - AddResponseHeader=X-Platform, microservices-pro
-
-        - id: order-service
-          uri: lb://ORDER-SERVICE # lb = load balanced via Eureka
-          predicates:
-            - Path=/api/orders/**
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
+  config:
+    import: optional:configserver:http://localhost:8888

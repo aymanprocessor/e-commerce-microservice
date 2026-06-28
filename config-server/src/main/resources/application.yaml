@@ -1,10 +1,19 @@
 server:
-  port:8888
+  port: 8888
 
 spring:
   application:
     name: config-server
-    cloud:
-      config:
-        native:
-          search-locations: classpath:/config
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/aymanprocessor/e-commerce-microservice-config.git
+          default-label: main
+          clone-on-start: true
+
+management:
+  endpoint:
+    web:
+      exposure:
+        include: health,info
