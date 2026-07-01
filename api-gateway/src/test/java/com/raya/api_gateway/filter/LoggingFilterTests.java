@@ -1,6 +1,6 @@
-package com.raya.api_gateway;
+package com.raya.api_gateway.filter;
 
-import com.raya.api_gateway.configs.LoggingFilter;
+import com.raya.api_gateway.Filters.LoggingFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.Ordered;

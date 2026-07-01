@@ -4,3 +4,13 @@ spring:
 
   config:
     import: optional:configserver:http://localhost:8888
+
+
+gateway:
+  public-routes:
+    - method: GET
+      path: /api/products/**
+    - method: GET
+      path: /actuator/health
+    - method: GET
+      path: /actuator/info

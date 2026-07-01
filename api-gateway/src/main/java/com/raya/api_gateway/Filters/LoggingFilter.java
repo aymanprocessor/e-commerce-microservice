@@ -1,4 +1,4 @@
-package com.raya.api_gateway.configs;
+package com.raya.api_gateway.Filters;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
