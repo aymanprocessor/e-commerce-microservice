@@ -1,0 +1,27 @@
+package com.raya.order_service.controllers;
+
+import com.raya.order_service.models.PaymentRequest;
+import com.raya.order_service.models.PaymentResponse;
+import com.raya.order_service.services.PaymentService;
+import lombok.AllArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+
+@RestController
+@RequestMapping("payments")
+@AllArgsConstructor
+public class PaymentController {
+    private final PaymentService paymentService;
+
+    @PostMapping
+    public ResponseEntity<PaymentResponse> processPayment(
+            @RequestBody PaymentRequest request)
+            throws InterruptedException {
+
+        return ResponseEntity.ok(paymentService.processPayment(request));
+    }
+}
