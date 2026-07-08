@@ -4,6 +4,7 @@ import com.raya.order_service.models.OrderRequest;
 import com.raya.order_service.models.OrderResponse;
 import com.raya.order_service.models.PaymentRequest;
 import com.raya.order_service.models.PaymentResponse;
+import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class OrderService {
@@ -22,6 +24,8 @@ public class OrderService {
     @Autowired
     private PaymentService paymentService;
 
+    @Bulkhead(name = "paymentService", fallbackMethod = "bulkheadFallback")
+    @TimeLimiter(name = "paymentService", fallbackMethod = "timeoutFallback")
     @CircuitBreaker(name = "paymentService", fallbackMethod = "paymentFallback")
     @Retry(name = "paymentService")
     public CompletableFuture<OrderResponse> createOrderAsync(OrderRequest request) {
@@ -41,5 +45,16 @@ public class OrderService {
                 "PENDING",
                 "Will retry payment"
         ));
+    }
+
+    public OrderResponse bulkheadFallback(OrderRequest request, BulkheadFullException ex) {
+        log.warn("[BULKHEAD] Concurrent limit reached: {}", ex.getMessage());
+        return new OrderResponse("QUEUED", "System busy — your order is queued");
+    }
+
+    public CompletableFuture<OrderResponse> timeoutFallback(OrderRequest request, TimeoutException ex) {
+        log.warn("[TIMEOUT] Payment exceeded 2s limit: {}", ex.getMessage());
+        return CompletableFuture.completedFuture(
+                new OrderResponse("PENDING", "Payment timed out"));
     }
 }

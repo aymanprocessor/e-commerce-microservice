@@ -8,6 +8,8 @@ spring:
 
 gateway:
   public-routes:
+    - method: POST
+      path: /api/orders/**
     - method: GET
       path: /api/products/**
     - method: GET

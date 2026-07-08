@@ -3,6 +3,7 @@ package com.raya.order_service.controllers;
 import com.raya.order_service.models.OrderRequest;
 import com.raya.order_service.models.OrderResponse;
 import com.raya.order_service.services.OrderService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,13 +14,11 @@ import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/orders")
+@RequiredArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
 
-    public OrderController(OrderService orderService) {
-        this.orderService = orderService;
-    }
 
     @PostMapping
     public CompletableFuture<ResponseEntity<OrderResponse>> createOrder(@RequestBody OrderRequest request) {
