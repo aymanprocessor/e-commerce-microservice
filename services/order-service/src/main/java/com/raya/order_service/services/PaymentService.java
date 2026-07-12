@@ -15,7 +15,7 @@ public class PaymentService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    private static final String PAYMENT_URL = "http://localhost:8083/api/payments";
+    private static final String PAYMENT_URL = "http://localhost:8083/api/v1/payments";
     public PaymentResponse processPayment(PaymentRequest request) {
         return restTemplate.postForObject(PAYMENT_URL,request,PaymentResponse.class);
     }

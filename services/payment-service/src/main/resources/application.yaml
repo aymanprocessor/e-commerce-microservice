@@ -22,4 +22,4 @@ management:
 
 payment:
   failure-rate: 0.5
-  delay-ms: 3000
+  delay-ms: 0

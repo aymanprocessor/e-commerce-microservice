@@ -9,9 +9,11 @@ spring:
 gateway:
   public-routes:
     - method: POST
-      path: /api/orders/**
+      path: /api/v1/orders/**
     - method: GET
-      path: /api/products/**
+      path: /api/v1/products/**
+    - method: GET
+      path: /api/v1/inventory/**
     - method: GET
       path: /actuator/health
     - method: GET

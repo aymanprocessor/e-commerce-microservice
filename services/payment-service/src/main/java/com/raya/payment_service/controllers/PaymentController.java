@@ -16,7 +16,7 @@ import java.util.UUID;
 
 
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
@@ -32,13 +32,13 @@ public class PaymentController {
     @PostMapping
     public ResponseEntity<PaymentResponse> processPayment(@RequestBody PaymentRequest request) throws InterruptedException {
 
-        if (delayMs > 0) {
-            Thread.sleep(delayMs);
-        }
-
-        if (random.nextDouble() < failureRate) {
-            throw new RuntimeException("Payment gateway timeout");
-        }
+//        if (delayMs > 0) {
+//            Thread.sleep(delayMs);
+//        }
+//
+//        if (random.nextDouble() < failureRate) {
+//            throw new RuntimeException("Payment gateway timeout");
+//        }
 
         return ResponseEntity.ok(new PaymentResponse(
                 UUID.randomUUID().toString(),

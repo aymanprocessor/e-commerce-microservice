@@ -19,10 +19,10 @@ public class PaymentService {
     public PaymentResponse processPayment(PaymentRequest request)
     {
 
-
-        if (random.nextDouble() < failureRate) {
-            throw new RuntimeException("Payment gateway timeout");
-        }
+//
+//        if (random.nextDouble() < failureRate) {
+//            throw new RuntimeException("Payment gateway timeout");
+//        }
 
         return new PaymentResponse(
                 UUID.randomUUID().toString(),
