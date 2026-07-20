@@ -1,9 +1,24 @@
 spring:
   application:
     name: inventory-service
-
   config:
     import: configserver:http://localhost:8888
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: ${spring.application.name}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.raya.*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.raya.inventory_service.model.event.OrderPlacedEvent
+      auto-offset-reset: earliest
 
 eureka:
   client:

@@ -2,48 +2,48 @@ package com.raya.product_service.service;
 
 import com.raya.product_service.model.Product;
 import com.raya.product_service.repository.ProductRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ProductService {
 
-    @Autowired
-    private ProductRepository productRepository;
+    private final ProductRepository productRepository;
 
-    public List<Product> getAllProducts(){
+    public ProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
+
+    @Cacheable(value = "products", key = "'all'")
+    public List<Product> findAll() {
         return productRepository.findAll();
     }
 
-
-    public Product getProductById(Long id){
-        return productRepository.findById(id).orElseThrow(() -> new RuntimeException("product not found with id: " + id));
+    @Cacheable(value = "products", key = "#id")
+    public Optional<Product> findById(Long id) {
+        return productRepository.findById(id);
     }
 
-    public Product createProduct(Product product){
-
-        product.setId(null);
-        return productRepository.save(product);
+    @CacheEvict(value = "products", key = "#result.id")
+    public Product save(Product product) {
+        Product saved = productRepository.save(product);
+        evictAllProductsCache();
+        return saved;
     }
 
-    public Product updateProduct(Long id, Product product){
-        Product existingProduct = getProductById(id);
-
-        existingProduct.setName(product.getName());
-        existingProduct.setDescription(product.getDescription());
-        existingProduct.setPrice(product.getPrice());
-        existingProduct.setCategory(product.getCategory());
-
-        return productRepository.save(existingProduct);
+    @CacheEvict(value = "products", key = "#id")
+    public void deleteById(Long id) {
+        productRepository.deleteById(id);
+        evictAllProductsCache();
     }
 
-    public void deleteProduct(Long id){
-        Product existingProduct = getProductById(id);
-        productRepository.delete(existingProduct);
-
-
+    @CacheEvict(value = "products", key = "'all'")
+    public void evictAllProductsCache() {
+        // Called internally on any write operation — evicts the cached
+        // "all products" list so it doesn't go stale after a save/delete.
     }
-
 }

@@ -2,13 +2,11 @@ package com.raya.order_service.controllers;
 
 import com.raya.order_service.models.OrderRequest;
 import com.raya.order_service.models.OrderResponse;
+import com.raya.order_service.models.OrderStatus;
 import com.raya.order_service.services.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -21,8 +19,13 @@ public class OrderController {
 
 
     @PostMapping
-    public CompletableFuture<ResponseEntity<OrderResponse>> createOrder(@RequestBody OrderRequest request) {
-        return orderService.createOrderAsync(request)
-                .thenApply(ResponseEntity::ok);
+    public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderRequest request) {
+        return ResponseEntity.ok(orderService.createOrder(request));
     }
+
+    @GetMapping("/{orderId}/status")
+    public ResponseEntity<OrderStatus> getStatus(@PathVariable String orderId) {
+        return ResponseEntity.ok(orderService.getOrderStatus(orderId));
+    }
+
 }

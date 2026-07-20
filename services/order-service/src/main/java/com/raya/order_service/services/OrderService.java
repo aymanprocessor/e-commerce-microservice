@@ -1,7 +1,10 @@
 package com.raya.order_service.services;
 
 import com.raya.order_service.client.InventoryClient;
+import com.raya.order_service.exception.OrderNotFoundException;
 import com.raya.order_service.models.*;
+import com.raya.order_service.models.event.OrderPlacedEvent;
+import com.raya.order_service.repository.OrderRepository;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -10,20 +13,28 @@ import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
 @Service
 public class OrderService {
+
     private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     @Autowired
     private PaymentService paymentService;
 
     @Autowired
-    private InventoryClient inventoryClient;  // injected by Feign
+    private InventoryClient inventoryClient;
+
+    @Autowired private OrderRepository orderRepository;
+
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Bulkhead(name = "paymentService", fallbackMethod = "bulkheadFallback")
     @TimeLimiter(name = "paymentService", fallbackMethod = "timeoutFallback")
@@ -50,6 +61,26 @@ public class OrderService {
 
     }
 
+
+    public OrderResponse createOrder(OrderRequest request) {
+        // Step 1: Create order in PENDING state (local transaction)
+        Order order = new Order(UUID.randomUUID().toString(), request.productId(),
+                request.quantity(), request.amount(), OrderStatus.PENDING);
+        orderRepository.save(order);
+        // Step 2: Publish event to start the Saga (async — no waiting)
+        kafkaTemplate.send("order-events", order.getOrderId(),
+                new OrderPlacedEvent(order.getOrderId(), request.productId(),
+                        request.quantity(), request.amount(), request.customerId()));
+        // Return immediately — client gets PENDING, not final state
+        return new OrderResponse(order.getOrderId(), "PENDING", "Order received…");
+    }
+
+
+    public OrderStatus getOrderStatus(String orderId) {
+        return orderRepository.findById(orderId)
+                .map(Order::getStatus)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found: " + orderId));
+    }
 
     public CompletableFuture<OrderResponse> paymentFallback(OrderRequest request, Throwable ex) {
         log.warn("Payment failed, returning PENDING order. Reason: {}", ex.getMessage());
