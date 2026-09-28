@@ -2,22 +2,27 @@ package com.raya.order_service.config;
 
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
-import org.springframework.http.HttpHeaders;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.util.Objects;
 
 @Component
 public class FeignJwtInterceptor implements RequestInterceptor {
+    private final OAuth2AuthorizedClientManager authorizedClientManager;
+
+    public FeignJwtInterceptor(OAuth2AuthorizedClientManager authorizedClientManager) {
+        this.authorizedClientManager = authorizedClientManager;
+    }
+
     @Override
     public void apply(RequestTemplate template) {
-        // Get JWT from the incoming request context
-        var attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attrs != null) {
-            String authHeader = attrs.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
-            if (authHeader != null) {
-                template.header(HttpHeaders.AUTHORIZATION, authHeader);
-            }
-        }
+        var request = OAuth2AuthorizeRequest.withClientRegistrationId("inventory")
+                .principal("order-service")
+                .build();
+        var client = Objects.requireNonNull(authorizedClientManager.authorize(request),
+                "Could not obtain the Inventory service access token");
+        template.header("Authorization", "Bearer " + client.getAccessToken().getTokenValue());
     }
 }

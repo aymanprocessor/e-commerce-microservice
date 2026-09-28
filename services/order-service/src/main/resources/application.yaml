@@ -6,6 +6,21 @@ spring:
     name: order-service
   config:
     import: "optional:configserver:http://localhost:8888"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/microservices-pro}
+      client:
+        registration:
+          inventory:
+            provider: keycloak
+            client-id: ${ORDER_SERVICE_CLIENT_ID:order-service}
+            client-secret: ${ORDER_SERVICE_CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+        provider:
+          keycloak:
+            token-uri: ${KEYCLOAK_TOKEN_URI:http://localhost:8090/realms/microservices-pro/protocol/openid-connect/token}
   datasource:
     url: jdbc:postgresql://localhost:5432/microservices_pro
     username: postgres
