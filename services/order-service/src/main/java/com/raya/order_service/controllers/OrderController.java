@@ -4,6 +4,7 @@ import com.raya.order_service.models.OrderRequest;
 import com.raya.order_service.models.OrderResponse;
 import com.raya.order_service.models.OrderStatus;
 import com.raya.order_service.services.OrderService;
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ public class OrderController {
 
 
     @PostMapping
+    @Timed(value = "order.create.duration", description = "Time to create an order")
     public ResponseEntity<OrderResponse> createOrder(@RequestBody OrderRequest request) {
         return ResponseEntity.ok(orderService.createOrder(request));
     }
