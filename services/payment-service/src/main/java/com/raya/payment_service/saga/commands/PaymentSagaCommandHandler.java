@@ -2,14 +2,16 @@ package com.raya.payment_service.saga.commands;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.raya.payment_service.exception.PaymentException;
-import com.raya.payment_service.services.PaymentProcessor;
+import com.raya.payment_service.models.PaymentRequest;
+import com.raya.payment_service.models.PaymentResponse;
+import com.raya.payment_service.services.PaymentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @Service
@@ -17,13 +19,17 @@ public class PaymentSagaCommandHandler {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentSagaCommandHandler.class);
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+    private final PaymentService paymentService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Autowired
-    private PaymentProcessor paymentProcessor;
-
-    @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    public PaymentSagaCommandHandler(ObjectMapper objectMapper,
+                                     PaymentService paymentService,
+                                     KafkaTemplate<String, Object> kafkaTemplate) {
+        this.objectMapper = objectMapper;
+        this.paymentService = paymentService;
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     @KafkaListener(topics = "saga-commands", groupId = "payment-saga-handler")
     public void handleCommand(String rawCommand) {
@@ -38,20 +44,22 @@ public class PaymentSagaCommandHandler {
             }
 
             String orderId = (String) cmd.get("orderId");
-            // amount is parsed but not used by the randomised PaymentProcessor —
-            // it would be used by a real payment gateway integration
+            BigDecimal amount = new BigDecimal(String.valueOf(cmd.get("amount")));
             log.info("[PAYMENT-HANDLER] Processing payment for order {}", orderId);
 
             try {
-                String transactionId = paymentProcessor.processPayment(orderId);
+                // The order ID is stable across Kafka redeliveries of this payment command.
+                PaymentResponse payment = paymentService.processOnce(
+                        orderId, new PaymentRequest(amount));
 
                 kafkaTemplate.send("saga-results", orderId,
                         Map.of("type", "PaymentResultEvent",
                                 "orderId", orderId,
                                 "success", true,
-                                "transactionId", transactionId));
+                                "transactionId", payment.transactionId()));
 
-                log.info("[PAYMENT-HANDLER] Payment completed for order {} txId={}", orderId, transactionId);
+                log.info("[PAYMENT-HANDLER] Payment completed for order {} txId={}",
+                        orderId, payment.transactionId());
             } catch (PaymentException e) {
                 kafkaTemplate.send("saga-results", orderId,
                         Map.of("type", "PaymentResultEvent",
@@ -59,11 +67,11 @@ public class PaymentSagaCommandHandler {
                                 "success", false,
                                 "transactionId", ""));
 
-                log.warn("[PAYMENT-HANDLER] Payment failed for order {}: {}", orderId, e.getMessage());
+                log.warn("[PAYMENT-HANDLER] Payment failed for order {}: {}",
+                        orderId, e.getMessage());
             }
-
         } catch (Exception e) {
-            log.error("[PAYMENT-HANDLER] Failed to parse command: {}", rawCommand, e);
+            log.error("[PAYMENT-HANDLER] Failed to process command: {}", rawCommand, e);
         }
     }
 }
