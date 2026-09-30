@@ -40,7 +40,8 @@ public class OrderService {
     @TimeLimiter(name = "paymentService", fallbackMethod = "timeoutFallback")
     @CircuitBreaker(name = "paymentService", fallbackMethod = "paymentFallback")
     @Retry(name = "paymentService")
-    public CompletableFuture<OrderResponse> createOrderAsync(OrderRequest request) {
+    public CompletableFuture<OrderResponse> createOrderAsync(
+            OrderRequest request, String idempotencyKey) {
         // Step 1: Check inventory BEFORE payment
         StockCheckResponse stock = inventoryClient.checkStock(
                 request.productId(), request.quantity());
@@ -54,7 +55,7 @@ public class OrderService {
         // Step 2: Process payment (only if stock is OK)
         return CompletableFuture.supplyAsync(() -> {
             PaymentResponse payment = paymentService.processPayment(
-                    new PaymentRequest(request.amount()));
+                    idempotencyKey, new PaymentRequest(request.amount()));
             return new OrderResponse("CONFIRMED", payment.transactionId());
         });
 
